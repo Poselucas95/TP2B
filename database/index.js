@@ -44,15 +44,16 @@ const openConnection = () => {
     });
 };
 
-const closeConnection = () => {
+function closeConnection() {
   return client.close(() => {
     console.log(chalk.green("Conexión finalizada"));
   });
 };
 
-const insertData = (object, db) => {
+const insertData = async function(object, db) {
   return db
     .then((response) => {
+      console.log(chalk.yellow("Insertando inventor"));
       return response
         .insertOne(object)
         .then((res) => {
@@ -66,9 +67,10 @@ const insertData = (object, db) => {
     .catch((err) => console.log(chalk.red(err)));
 };
 
-const deleteData = (object, db) => {
+const deleteData = async function(object, db) {
   return db
     .then((response) => {
+      console.log(chalk.yellow("Borrar inventor"));
       return response
         .deleteOne(object)
         .then((res) => {
@@ -82,9 +84,10 @@ const deleteData = (object, db) => {
     .catch((err) => console.log(chalk.red(err)));
 };
 
-const updateData = (objectToUpdate, newObject, db) => {
+const updateData =  async function (objectToUpdate, newObject, db){
   return db
     .then((response) => {
+      console.log(chalk.yellow("Editar inventor"));
       return response
         .updateOne(objectToUpdate, { $set: newObject })
         .then((res) => {
@@ -98,8 +101,7 @@ const updateData = (objectToUpdate, newObject, db) => {
     .catch((err) => console.log(chalk.red(err)));
 };
 
-const viewAllData = (db) => {
-
+const viewAllData = async function(db){
   return db
     .then((response) => {
       console.log(chalk.yellow("Listado de inventores"));
@@ -122,24 +124,14 @@ const viewAllData = (db) => {
     .catch((err) => console.log(chalk.red(err)));
 };
 
-const ejecutarCrud = () => {
-  const db = openConnection();
-  viewAllData(db).then(() => {
-    console.log(chalk.yellow("Insertando inventor"));
-    insertData(inventor1, db).then(() => {
-      viewAllData(db).then(() => {
-        console.log(chalk.yellow("Editar inventor"));
-        updateData(inventor1, inventor2, db).then(() => {
-          console.log(chalk.yellow("Borrar inventor"));
-          deleteData(inventor2, db).then(() => {
-            viewAllData(db).then(() => {
-              closeConnection();
-            });
-          });
-        });
-      });
-    });
-  });
+const ejecutarCrud = async function() {
+  const dbConnect = openConnection();
+  const viewAllInventor = await viewAllData(dbConnect);
+  const iInventor = await insertData(inventor1, dbConnect);
+  const viewallDataWithInsert = await viewAllData(dbConnect)
+  const uInventor = await updateData(inventor1, inventor2, dbConnect);
+  const dInventor = await deleteData(inventor2, dbConnect);
+  const viewAllInventorFinish = await viewAllData(dbConnect)
+  const dbC = await closeConnection();
 };
-
 ejecutarCrud();
