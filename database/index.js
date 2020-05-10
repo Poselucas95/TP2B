@@ -31,106 +31,115 @@ const inventor4 = {
   year: 2009,
 };
 
-const handleCollection = (res, collection) => {
-  return res.db("sample_betp2").collection(collection);
-};
-
-
-const insertData = (object, collection) => {
-  console.log('Conectando a la base de datos.')
-  client.connect((error, result) => {
-    if (!error) {
+const openConnection = () => {
+  console.log("Conectando a la base de datos.");
+  return client
+    .connect()
+    .then((res) => {
       console.log(chalk.green("Conexión exitosa"));
-      const collectionInventors = handleCollection(result, collection);
-      // insertar un nuevo inventor
-      collectionInventors.insertOne(object, (error, result) => {
-        if (!error) {
-            console.log(chalk.green(`Se insertó ${result.insertedCount} inventor`));
-          client.close();
-        } else {
-          chalk.red("No se logró insertar al inventor, error: ", error);
-        }
-      });
-    } else {
-      console.log(chalk.red(error));
-    }
-  });
-};
-
-const deleteData = (object, collection) => {
-  console.log('Conectando a la base de datos.')
-  client.connect((err, res) => {
-    if (!err) {
-      console.log(chalk.green("Conexión exitosa"));
-      const collectionInventors = handleCollection(res, collection);
-      collectionInventors.deleteOne(object, (err, res) => {
-        if (!err) {
-          console.log(chalk.green("Se ha eliminado el inventor: ", res));
-          
-        } else {
-          chalk.red("No se logro eliminar el inventor ", err);
-        }
-        client.close();
-      });
-    } else {
+      return res.db("sample_betp2").collection("inventors");
+    })
+    .catch((err) => {
       console.log(chalk.red(err));
-    }
+    });
+};
+
+const closeConnection = () => {
+  return client.close(() => {
+    console.log(chalk.green("Conexión finalizada"));
   });
 };
 
-const updateData = (objectToUpdate, newObject, collection) => {
-  console.log('Conectando a la base de datos.')
-  client.connect((err, res) => {
-    if (!err) {
-      console.log(chalk.green("Conexión exitosa"));
-      const collectionInventors = handleCollection(res, collection);
-      collectionInventors.updateOne(
-        objectToUpdate,
-        { $set: newObject },
-        (err, res) => {
-          if (!err) {
-            console.log(chalk.green(`Se modificó ${res.modifiedCount} registro`));
-            client.close();
-          }
-        }
-      );
-    } else {
-      console.log(chalk.red(err));
-    }
-  });
-};
-
-const viewAllData = (collection) => {
-  console.log('Conectando a la base de datos.')
-  client.connect((err, res) => {
-    if (!err) {
-      console.log(chalk.green("Conexión exitosa"));
-      const collectionInventors = handleCollection(res, collection);
-      const inventors = collectionInventors.find({}).toArray((err, res)=> {
-        res.forEach(element => {
-            console.log(chalk.cyan("First: ",element.first))
-            console.log(chalk.cyan("Last: ",element.last))
-            console.log(chalk.cyan("Year: ",element.year))
-            console.log(chalk.cyan("-------------------"))
+const insertData = (object, db) => {
+  return db
+    .then((response) => {
+      return response
+        .insertOne(object)
+        .then((res) => {
+          console.log(chalk.green(`Se insertó ${res.insertedCount} inventor`));
+          return res;
+        })
+        .catch((err) => {
+          console.log(chalk.red(err));
         });
-        client.close()
+    })
+    .catch((err) => console.log(chalk.red(err)));
+};
+
+const deleteData = (object, db) => {
+  return db
+    .then((response) => {
+      return response
+        .deleteOne(object)
+        .then((res) => {
+          console.log(chalk.green("Se ha eliminado el inventor: ", res));
+          return res;
+        })
+        .catch((err) => {
+          chalk.red("No se logro eliminar el inventor ", err);
+        });
+    })
+    .catch((err) => console.log(chalk.red(err)));
+};
+
+const updateData = (objectToUpdate, newObject, db) => {
+  return db
+    .then((response) => {
+      return response
+        .updateOne(objectToUpdate, { $set: newObject })
+        .then((res) => {
+          console.log(chalk.green(`Se modificó ${res.modifiedCount} registro`));
+          return res;
+        })
+        .catch((err) => {
+          chalk.red("No se logro editar al inventor", err);
+        });
+    })
+    .catch((err) => console.log(chalk.red(err)));
+};
+
+const viewAllData = (db) => {
+
+  return db
+    .then((response) => {
+      console.log(chalk.yellow("Listado de inventores"));
+      return response
+        .find({})
+        .toArray()
+        .then((res) => {
+          res.forEach((element) => {
+            console.log(chalk.cyan("First: ", element.first));
+            console.log(chalk.cyan("Last: ", element.last));
+            console.log(chalk.cyan("Year: ", element.year));
+            console.log(chalk.cyan("-------------------"));
+          });
+          return res;
+        })
+        .catch((err) => {
+          console.log(chalk.red(err));
+        });
+    })
+    .catch((err) => console.log(chalk.red(err)));
+};
+
+const ejecutarCrud = () => {
+  const db = openConnection();
+  viewAllData(db).then(() => {
+    console.log(chalk.yellow("Insertando inventor"));
+    insertData(inventor1, db).then(() => {
+      viewAllData(db).then(() => {
+        console.log(chalk.yellow("Editar inventor"));
+        updateData(inventor1, inventor2, db).then(() => {
+          console.log(chalk.yellow("Borrar inventor"));
+          deleteData(inventor2, db).then(() => {
+            viewAllData(db).then(() => {
+              closeConnection();
+            });
+          });
+        });
       });
-    } else {
-      console.log(chalk.red(err));
-      return err
-    }
+    });
   });
 };
 
-
-// Para ver todos los registros
- viewAllData('inventors')
-
-// Para insertar un registro
-// insertData(inventor1, 'inventors')
-
-// Para editar un registro
-// updateData(inventor1, inventor2, 'inventors')
-
-// Para borrar un registro
-// deleteData(inventor2, 'inventors')
+ejecutarCrud();
